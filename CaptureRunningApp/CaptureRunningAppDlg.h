@@ -35,4 +35,5 @@ public:
 	afx_msg void OnBnClickedCapture();
 	CListCtrl m_captureList;
 	afx_msg void OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *pResult);
+	CStatic m_PicControl;
 };

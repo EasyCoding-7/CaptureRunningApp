@@ -171,6 +171,7 @@ void CCaptureRunningAppDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_CAPTURE_LIST, m_captureList);
+	DDX_Control(pDX, IDC_PICTUREC, m_PicControl);
 }
 
 BEGIN_MESSAGE_MAP(CCaptureRunningAppDlg, CDialogEx)
@@ -306,6 +307,15 @@ void CCaptureRunningAppDlg::OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	*pResult = 0;
 
+	// Erase image
+	CDC* p = m_PicControl.GetWindowDC();
+	OnEraseBkgnd(p);
+
+	CRect rt;
+	GetClientRect(&rt);  // 클라이언트 영역의 크기 계산
+	p->FillSolidRect(&rt, RGB(255, 255, 255));
+
+	// get List Ctrl index
 	POSITION pos;
 	pos = m_captureList.GetFirstSelectedItemPosition();
 	int idx = m_captureList.GetNextSelectedItem(pos);
@@ -318,22 +328,26 @@ void CCaptureRunningAppDlg::OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *
 	int n_window = (int)strtol(s_window.c_str(), NULL, 16);
 	HWND window = (HWND)n_window;
 
-
 	// draw capture
 	HDC hdc_target;
-	HDC hdc = ::GetDC(this->m_hWnd);
+	HDC hdc = m_PicControl.GetWindowDC()->m_hDC;
 
 	hdc_target = ::GetDC(window);
 
 	RECT rect;
 	::GetWindowRect(window, &rect);
-	int capture_width = rect.right - rect.left;
-	int capture_height = rect.bottom - rect.top;
-	int capture_x = rect.top;
-	int capture_y = rect.left;
+	int captured_width = rect.right - rect.left;
+	int captured_height = rect.bottom - rect.top;
 
-	BitBlt(hdc, 0, 0, capture_width, capture_height, hdc_target,
-		capture_x, capture_y, SRCCOPY);
+	CRect crect;
+	RECT rect2;
+	m_PicControl.GetClientRect(crect);
+	::GetWindowRect(m_PicControl, &rect2);
+	ScreenToClient(&rect2);
+
+	CDC* dc = GetDC();
+	// BitBlt(hdc, 0, 0, captured_width, captured_height, hdc_target, 0, 0, SRCCOPY);
+	dc->StretchBlt(rect2.left, rect2.top, crect.Width(), crect.Height(), CDC::FromHandle(hdc_target), 0, 0, captured_width, captured_height, SRCCOPY);
 
 	::ReleaseDC(NULL, hdc_target);
 }
