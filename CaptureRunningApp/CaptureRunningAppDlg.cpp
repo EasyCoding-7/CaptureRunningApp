@@ -9,6 +9,7 @@
 #include "afxdialogex.h"
 
 #include "afxwin.h"
+#include <vector>
 #include <string>
 
 using namespace std;
@@ -16,6 +17,8 @@ using namespace std;
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+
+static vector<wstring> gs_blackList;
 
 size_t wchar_to_utf8(const wchar_t *in, size_t insize, char *out,
 	size_t outsize, int flags)
@@ -64,6 +67,26 @@ static bool WindowValid(HWND window)
 	LONG_PTR styles, ex_styles;
 	RECT rect;
 	DWORD id;
+
+	// check UWP program
+	TCHAR buffer_class[256];	
+	::GetClassName(window, buffer_class, 255);
+	TCHAR buffer_title[256];
+	::GetWindowTextW(window, buffer_title, 255);
+
+	char c_szText[256];
+	wcstombs(c_szText, buffer_class, wcslen(buffer_class) + 1);
+
+	if (strcmp(c_szText, "Windows.UI.Core.CoreWindow") == 0) {
+		gs_blackList.push_back((wstring)buffer_title);
+		return false;
+	}
+		
+	// check black list
+	for (auto& s : gs_blackList) {
+		if (s == (wstring)buffer_title)
+			return false;
+	}
 
 	if (!IsWindowVisible(window))
 		return false;
@@ -191,7 +214,8 @@ BOOL CCaptureRunningAppDlg::OnInitDialog()
 
 	// TODO: 여기에 추가 초기화 작업을 추가합니다.
 
-	m_captureList.InsertColumn(0, _T("Running Apps"), LVCFMT_LEFT, 1000);
+	m_captureList.InsertColumn(0, _T("Running Apps Title"), LVCFMT_LEFT, 600);
+	m_captureList.InsertColumn(1, _T("Class"), LVCFMT_LEFT, 400);
 
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
@@ -257,10 +281,13 @@ void CCaptureRunningAppDlg::OnBnClickedCapture()
 	 while (window) {
 		 string title;
 		 if (WindowValid(window) && GetWindowTitle(window, title)) {
-			 TCHAR buffer[256];
-			 ::GetWindowTextW(window, buffer, 255);
+			 TCHAR buffer_title[256];
+			 TCHAR buffer_class[256];
+			 ::GetWindowTextW(window, buffer_title, 255);
+			 ::GetClassName(window, buffer_class, 255);
 
-			 m_captureList.InsertItem(i++, buffer);
+			 m_captureList.InsertItem(i, buffer_title);
+			 m_captureList.SetItem(i++, 1, LVIF_TEXT, buffer_class, 0, 0, 0, NULL);
 		 }
 		 window = ::GetNextWindow(window, GW_HWNDNEXT);
 	 }
