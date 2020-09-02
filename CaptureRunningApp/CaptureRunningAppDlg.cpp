@@ -2,6 +2,8 @@
 // CaptureRunningAppDlg.cpp: 구현 파일
 //
 
+#pragma warning(disable:4996)
+
 #include "pch.h"
 #include "framework.h"
 #include "CaptureRunningApp.h"
@@ -11,6 +13,8 @@
 #include "afxwin.h"
 #include <vector>
 #include <string>
+
+#pragma comment( lib, "version.lib" )
 
 using namespace std;
 
@@ -172,6 +176,7 @@ void CCaptureRunningAppDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_CAPTURE_LIST, m_captureList);
 	DDX_Control(pDX, IDC_PICTUREC, m_PicControl);
+	DDX_Control(pDX, IDC_SAVE, m_checkSavePNG);
 }
 
 BEGIN_MESSAGE_MAP(CCaptureRunningAppDlg, CDialogEx)
@@ -180,6 +185,7 @@ BEGIN_MESSAGE_MAP(CCaptureRunningAppDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(ID_CAPTURE, &CCaptureRunningAppDlg::OnBnClickedCapture)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_CAPTURE_LIST, &CCaptureRunningAppDlg::OnLvnItemchangedCaptureList)
+	ON_BN_CLICKED(IDC_WINVER_BTN, &CCaptureRunningAppDlg::OnBnClickedWinverBtn)
 END_MESSAGE_MAP()
 
 
@@ -339,6 +345,41 @@ void CCaptureRunningAppDlg::OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *
 	int captured_width = rect.right - rect.left;
 	int captured_height = rect.bottom - rect.top;
 
+	// get L2M width
+	int get_width = 0;
+	while (get_width < captured_width) {
+		COLORREF ref;
+		ref = ::GetPixel(hdc_target, get_width++, 0);
+
+		unsigned char red = ref & 0x80;
+		unsigned char green = (ref >> 8) & 0x80;
+		unsigned char blue = (ref >> 16) & 0x80;
+		unsigned char alpha = (ref >> 24) & 0x80;
+
+		if (red == 128 && green == 128 && blue == 128 && alpha == 128) {
+			captured_width = get_width;
+			break;
+		}
+	}
+
+	// get L2M height
+	int get_height = 0;
+	while (get_height < captured_height) {
+		COLORREF ref;
+		ref = ::GetPixel(hdc_target,0, get_height++);
+
+		unsigned char red = ref & 0x80;
+		unsigned char green = (ref >> 8) & 0x80;
+		unsigned char blue = (ref >> 16) & 0x80;
+		unsigned char alpha = (ref >> 24) & 0x80;
+
+		if (red == 128 && green == 128 && blue == 128 && alpha == 128) {
+			captured_height = get_height;
+			break;
+		}
+	}
+
+
 	CRect crect;
 	RECT rect2;
 	m_PicControl.GetClientRect(crect);
@@ -348,7 +389,63 @@ void CCaptureRunningAppDlg::OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *
 	CDC* dc = GetDC();
 	// BitBlt(hdc, 0, 0, captured_width, captured_height, hdc_target, 0, 0, SRCCOPY);
 	dc->StretchBlt(rect2.left, rect2.top, crect.Width(), crect.Height(), 
-		CDC::FromHandle(hdc_target), 0, 0, captured_width*3/5, captured_height * 3 / 5, SRCCOPY);
+		CDC::FromHandle(hdc_target), 0, 0, captured_width, captured_height, SRCCOPY);
+
+
+
+	if (m_checkSavePNG.GetCheck()) {
+		CImage _image;
+		int cx = captured_width;// ::GetSystemMetrics(SM_CXSCREEN);
+		int cy = captured_height;//::GetSystemMetrics(SM_CYSCREEN);
+		int color_depth = ::GetDeviceCaps(hdc_target, BITSPIXEL);
+		_image.Create(cx, cy, color_depth, 0);
+		::BitBlt(_image.GetDC(), 0, 0, cx, cy, hdc_target, 0, 0, SRCCOPY);
+		_image.Save(L"CaptureTest.png", Gdiplus::ImageFormatPNG);
+		_image.ReleaseDC();
+	}
 
 	::ReleaseDC(NULL, hdc_target);
+}
+
+
+void CCaptureRunningAppDlg::OnBnClickedWinverBtn()
+{
+	std::string versionString;
+	DWORD someHandle;
+	wchar_t systemFolderPath[_MAX_PATH + 1];
+	UINT systemFolderPathSize = GetSystemDirectory(systemFolderPath, _MAX_PATH);
+	if (systemFolderPathSize > 0)
+	{
+		std::wstring ntDllPath(systemFolderPath, systemFolderPathSize);
+		ntDllPath += L"\\ntoskrnl.exe";
+		DWORD versionSize = GetFileVersionInfoSize(ntDllPath.c_str(), &someHandle);
+		if (versionSize > 0)
+		{
+			LPVOID dataPtr = malloc(versionSize);
+			if (dataPtr != NULL)
+			{
+				if (GetFileVersionInfo(ntDllPath.c_str(), 0, versionSize, dataPtr))
+				{
+					UINT length;
+					LPVOID outputPtr;
+					if (VerQueryValue(dataPtr, L"\\", &outputPtr, &length))
+					{
+						VS_FIXEDFILEINFO* versionStructPtr = (VS_FIXEDFILEINFO*)outputPtr;
+						if (versionStructPtr->dwSignature == 0xFEEF04BD)
+						{
+							versionString = std::to_string(HIWORD(versionStructPtr->dwFileVersionMS));
+							versionString += ".";
+							versionString += std::to_string(LOWORD(versionStructPtr->dwFileVersionMS));
+							versionString += ".";
+							versionString += std::to_string(HIWORD(versionStructPtr->dwFileVersionLS));
+							versionString += ".";
+							versionString += std::to_string(LOWORD(versionStructPtr->dwFileVersionLS));
+						}
+					}
+				}
+				free(dataPtr);
+			}
+		}
+	}
+	MessageBoxA(NULL, versionString.c_str(), "GetNtoskrnlVersion", SW_NORMAL);
 }

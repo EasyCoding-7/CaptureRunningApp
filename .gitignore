@@ -2,3 +2,4 @@
 CaptureRunningApp/Debug
 *.user
 **/.vs
+*.png
