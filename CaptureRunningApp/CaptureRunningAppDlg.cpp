@@ -347,7 +347,8 @@ void CCaptureRunningAppDlg::OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *
 
 	CDC* dc = GetDC();
 	// BitBlt(hdc, 0, 0, captured_width, captured_height, hdc_target, 0, 0, SRCCOPY);
-	dc->StretchBlt(rect2.left, rect2.top, crect.Width(), crect.Height(), CDC::FromHandle(hdc_target), 0, 0, captured_width, captured_height, SRCCOPY);
+	dc->StretchBlt(rect2.left, rect2.top, crect.Width(), crect.Height(), 
+		CDC::FromHandle(hdc_target), 0, 0, captured_width*3/5, captured_height * 3 / 5, SRCCOPY);
 
 	::ReleaseDC(NULL, hdc_target);
 }
