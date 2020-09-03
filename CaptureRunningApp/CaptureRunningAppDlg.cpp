@@ -345,11 +345,12 @@ void CCaptureRunningAppDlg::OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *
 	int captured_width = rect.right - rect.left;
 	int captured_height = rect.bottom - rect.top;
 
+	
 	// get L2M width
-	int get_width = 0;
-	while (get_width < captured_width) {
+	int get_width = captured_width-1;
+	while (get_width > 0) {
 		COLORREF ref;
-		ref = ::GetPixel(hdc_target, get_width++, 0);
+		ref = ::GetPixel(hdc_target, get_width--, 0);
 
 		unsigned char red = ref & 0x80;
 		unsigned char green = (ref >> 8) & 0x80;
@@ -357,16 +358,18 @@ void CCaptureRunningAppDlg::OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *
 		unsigned char alpha = (ref >> 24) & 0x80;
 
 		if (red == 128 && green == 128 && blue == 128 && alpha == 128) {
-			captured_width = get_width;
+		}
+		else {
+			captured_width = get_width+1;
 			break;
 		}
 	}
 
 	// get L2M height
-	int get_height = 0;
-	while (get_height < captured_height) {
+	int get_height = captured_height-1;
+	while (get_height > 0) {
 		COLORREF ref;
-		ref = ::GetPixel(hdc_target,0, get_height++);
+		ref = ::GetPixel(hdc_target,0, get_height--);
 
 		unsigned char red = ref & 0x80;
 		unsigned char green = (ref >> 8) & 0x80;
@@ -374,11 +377,13 @@ void CCaptureRunningAppDlg::OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *
 		unsigned char alpha = (ref >> 24) & 0x80;
 
 		if (red == 128 && green == 128 && blue == 128 && alpha == 128) {
-			captured_height = get_height;
+		}
+		else {
+			captured_height = get_height + 1;
 			break;
 		}
 	}
-
+	
 
 	CRect crect;
 	RECT rect2;
@@ -403,6 +408,9 @@ void CCaptureRunningAppDlg::OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *
 		_image.Save(L"CaptureTest.png", Gdiplus::ImageFormatPNG);
 		_image.ReleaseDC();
 	}
+
+
+
 
 	::ReleaseDC(NULL, hdc_target);
 }
