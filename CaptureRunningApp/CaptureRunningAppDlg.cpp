@@ -227,6 +227,7 @@ BOOL CCaptureRunningAppDlg::OnInitDialog()
 	m_captureList.InsertColumn(2, _T("HWND"), LVCFMT_LEFT, 200);
 
 
+
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
 
@@ -386,32 +387,14 @@ void CCaptureRunningAppDlg::OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *
 	
 
 	CRect crect;
-	RECT rect2;
 	m_PicControl.GetClientRect(crect);
-	::GetWindowRect(m_PicControl, &rect2);
-	ScreenToClient(&rect2);
 
-	CDC* dc = GetDC();
-	// BitBlt(hdc, 0, 0, captured_width, captured_height, hdc_target, 0, 0, SRCCOPY);
-	dc->StretchBlt(rect2.left, rect2.top, crect.Width(), crect.Height(), 
-		CDC::FromHandle(hdc_target), 0, 0, captured_width, captured_height, SRCCOPY);
-
-
-
-	if (m_checkSavePNG.GetCheck()) {
-		CImage _image;
-		int cx = captured_width;// ::GetSystemMetrics(SM_CXSCREEN);
-		int cy = captured_height;//::GetSystemMetrics(SM_CYSCREEN);
-		int color_depth = ::GetDeviceCaps(hdc_target, BITSPIXEL);
-		_image.Create(cx, cy, color_depth, 0);
-		::BitBlt(_image.GetDC(), 0, 0, cx, cy, hdc_target, 0, 0, SRCCOPY);
-		_image.Save(L"CaptureTest.png", Gdiplus::ImageFormatPNG);
-		_image.ReleaseDC();
-	}
-
-
-
-
+	CImage _image;
+	int color_depth = ::GetDeviceCaps(hdc_target, BITSPIXEL);
+	_image.Create(captured_width, captured_height, color_depth, 0);
+	::PrintWindow(window, _image.GetDC(), 2);
+	m_PicControl.GetDC()->StretchBlt(0, 0, crect.Width(), crect.Height(), CDC::FromHandle(_image.GetDC()), 0, 0, captured_width, captured_height, SRCCOPY);
+	
 	::ReleaseDC(NULL, hdc_target);
 }
 
@@ -457,3 +440,4 @@ void CCaptureRunningAppDlg::OnBnClickedWinverBtn()
 	}
 	MessageBoxA(NULL, versionString.c_str(), "GetNtoskrnlVersion", SW_NORMAL);
 }
+
