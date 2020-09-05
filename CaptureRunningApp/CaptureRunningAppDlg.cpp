@@ -186,6 +186,7 @@ BEGIN_MESSAGE_MAP(CCaptureRunningAppDlg, CDialogEx)
 	ON_BN_CLICKED(ID_CAPTURE, &CCaptureRunningAppDlg::OnBnClickedCapture)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_CAPTURE_LIST, &CCaptureRunningAppDlg::OnLvnItemchangedCaptureList)
 	ON_BN_CLICKED(IDC_WINVER_BTN, &CCaptureRunningAppDlg::OnBnClickedWinverBtn)
+	ON_BN_CLICKED(IDC_CAPTURE_PRO, &CCaptureRunningAppDlg::OnBnClickedCapturePro)
 END_MESSAGE_MAP()
 
 
@@ -226,7 +227,7 @@ BOOL CCaptureRunningAppDlg::OnInitDialog()
 	m_captureList.InsertColumn(1, _T("Class"), LVCFMT_LEFT, 400);
 	m_captureList.InsertColumn(2, _T("HWND"), LVCFMT_LEFT, 200);
 
-
+	OnBnClickedCapture();
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
@@ -284,6 +285,8 @@ HCURSOR CCaptureRunningAppDlg::OnQueryDragIcon()
 
 void CCaptureRunningAppDlg::OnBnClickedCapture()
 {
+	m_captureList.DeleteAllItems();
+
 	 CWnd * pWnd = GetForegroundWindow();
 	 HWND window = pWnd->m_hWnd;
 	 int i = 0;
@@ -314,88 +317,8 @@ void CCaptureRunningAppDlg::OnLvnItemchangedCaptureList(NMHDR *pNMHDR, LRESULT *
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	*pResult = 0;
 
-	// Erase image
-	CDC* p = m_PicControl.GetWindowDC();
-	OnEraseBkgnd(p);
-
-	CRect rt;
-	GetClientRect(&rt);  // 클라이언트 영역의 크기 계산
-	p->FillSolidRect(&rt, RGB(255, 255, 255));
-
-	// get List Ctrl index
-	POSITION pos;
-	pos = m_captureList.GetFirstSelectedItemPosition();
-	int idx = m_captureList.GetNextSelectedItem(pos);
-
-	// get HWND
-	CString cs_window = m_captureList.GetItemText(idx, 2);
-	CT2CA pszConvertedAnsiString(cs_window);
-	std::string s_window(pszConvertedAnsiString);
-
-	int n_window = (int)strtol(s_window.c_str(), NULL, 16);
-	HWND window = (HWND)n_window;
-
-	// draw capture
-	HDC hdc_target;
-	HDC hdc = m_PicControl.GetWindowDC()->m_hDC;
-
-	hdc_target = ::GetDC(window);
-
-	RECT rect;
-	::GetWindowRect(window, &rect);
-	int captured_width = rect.right - rect.left;
-	int captured_height = rect.bottom - rect.top;
-
-	
-	// get L2M width
-	int get_width = captured_width-1;
-	while (get_width > 0) {
-		COLORREF ref;
-		ref = ::GetPixel(hdc_target, get_width--, 0);
-
-		unsigned char red = ref & 0x80;
-		unsigned char green = (ref >> 8) & 0x80;
-		unsigned char blue = (ref >> 16) & 0x80;
-		unsigned char alpha = (ref >> 24) & 0x80;
-
-		if (red == 128 && green == 128 && blue == 128 && alpha == 128) {
-		}
-		else {
-			captured_width = get_width+1;
-			break;
-		}
-	}
-
-	// get L2M height
-	int get_height = captured_height-1;
-	while (get_height > 0) {
-		COLORREF ref;
-		ref = ::GetPixel(hdc_target,0, get_height--);
-
-		unsigned char red = ref & 0x80;
-		unsigned char green = (ref >> 8) & 0x80;
-		unsigned char blue = (ref >> 16) & 0x80;
-		unsigned char alpha = (ref >> 24) & 0x80;
-
-		if (red == 128 && green == 128 && blue == 128 && alpha == 128) {
-		}
-		else {
-			captured_height = get_height + 1;
-			break;
-		}
-	}
-	
-
-	CRect crect;
-	m_PicControl.GetClientRect(crect);
-
-	CImage _image;
-	int color_depth = ::GetDeviceCaps(hdc_target, BITSPIXEL);
-	_image.Create(captured_width, captured_height, color_depth, 0);
-	::PrintWindow(window, _image.GetDC(), 2);
-	m_PicControl.GetDC()->StretchBlt(0, 0, crect.Width(), crect.Height(), CDC::FromHandle(_image.GetDC()), 0, 0, captured_width, captured_height, SRCCOPY);
-	
-	::ReleaseDC(NULL, hdc_target);
+	// 이상하게 여기서 CImage를 쓰면 Detach에서 에러가 발생함
+	// 이윤 나도 모름.
 }
 
 
@@ -441,3 +364,96 @@ void CCaptureRunningAppDlg::OnBnClickedWinverBtn()
 	MessageBoxA(NULL, versionString.c_str(), "GetNtoskrnlVersion", SW_NORMAL);
 }
 
+
+
+void CCaptureRunningAppDlg::OnBnClickedCapturePro()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+
+	
+	// Erase image
+	CDC* p = m_PicControl.GetWindowDC();
+	OnEraseBkgnd(p);
+
+	CRect rt;
+	GetClientRect(&rt);  // 클라이언트 영역의 크기 계산
+	p->FillSolidRect(&rt, RGB(255, 255, 255));
+
+	// get List Ctrl index
+	POSITION pos;
+	pos = m_captureList.GetFirstSelectedItemPosition();
+	int idx = m_captureList.GetNextSelectedItem(pos);
+
+	// get HWND
+	CString cs_window = m_captureList.GetItemText(idx, 2);
+	CT2CA pszConvertedAnsiString(cs_window);
+	std::string s_window(pszConvertedAnsiString);
+
+	int n_window = (int)strtol(s_window.c_str(), NULL, 16);
+	HWND window = (HWND)n_window;
+
+	// draw capture
+	HDC hdc_target;
+	HDC hdc = m_PicControl.GetWindowDC()->m_hDC;
+
+	hdc_target = ::GetDC(window);
+
+	RECT rect;
+	::GetWindowRect(window, &rect);
+	int captured_width = rect.right - rect.left;
+	int captured_height = rect.bottom - rect.top;
+
+
+	// get L2M width
+	int get_width = captured_width - 1;
+	while (get_width > 0) {
+		COLORREF ref;
+		ref = ::GetPixel(hdc_target, get_width--, 0);
+
+		unsigned char red = ref & 0x80;
+		unsigned char green = (ref >> 8) & 0x80;
+		unsigned char blue = (ref >> 16) & 0x80;
+		unsigned char alpha = (ref >> 24) & 0x80;
+
+		if (red == 128 && green == 128 && blue == 128 && alpha == 128) {
+		}
+		else {
+			captured_width = get_width + 1;
+			break;
+		}
+	}
+
+	// get L2M height
+	int get_height = captured_height - 1;
+	while (get_height > 0) {
+		COLORREF ref;
+		ref = ::GetPixel(hdc_target, 0, get_height--);
+
+		unsigned char red = ref & 0x80;
+		unsigned char green = (ref >> 8) & 0x80;
+		unsigned char blue = (ref >> 16) & 0x80;
+		unsigned char alpha = (ref >> 24) & 0x80;
+
+		if (red == 128 && green == 128 && blue == 128 && alpha == 128) {
+		}
+		else {
+			captured_height = get_height + 1;
+			break;
+		}
+	}
+	
+
+	CRect crect;
+	m_PicControl.GetClientRect(crect);
+
+	CImage _image;
+	int color_depth = ::GetDeviceCaps(hdc_target, BITSPIXEL);
+	
+	_image.Create(captured_width, captured_height, color_depth, 0);
+	HDC temp = _image.GetDC();
+	::PrintWindow(window, temp, 2);
+	m_PicControl.GetDC()->StretchBlt(0, 0, crect.Width(), crect.Height(), CDC::FromHandle(temp), 0, 0, captured_width, captured_height, SRCCOPY);
+	_image.ReleaseDC();
+
+	::ReleaseDC(NULL, hdc_target);
+}

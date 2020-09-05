@@ -38,4 +38,5 @@ public:
 	CStatic m_PicControl;
 	afx_msg void OnBnClickedWinverBtn();
 	CButton m_checkSavePNG;
+	afx_msg void OnBnClickedCapturePro();
 };
