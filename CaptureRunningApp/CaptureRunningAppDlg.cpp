@@ -403,12 +403,12 @@ void CCaptureRunningAppDlg::OnBnClickedCapturePro()
 	int captured_width = rect.right - rect.left;
 	int captured_height = rect.bottom - rect.top;
 
-
+	
 	// get L2M width
 	int get_width = captured_width - 1;
 	while (get_width > 0) {
 		COLORREF ref;
-		ref = ::GetPixel(hdc_target, get_width--, 0);
+		ref = ::GetPixel(hdc_target, get_width--, 10);
 
 		unsigned char red = ref & 0x80;
 		unsigned char green = (ref >> 8) & 0x80;
@@ -427,7 +427,7 @@ void CCaptureRunningAppDlg::OnBnClickedCapturePro()
 	int get_height = captured_height - 1;
 	while (get_height > 0) {
 		COLORREF ref;
-		ref = ::GetPixel(hdc_target, 0, get_height--);
+		ref = ::GetPixel(hdc_target, 10, get_height--);
 
 		unsigned char red = ref & 0x80;
 		unsigned char green = (ref >> 8) & 0x80;
@@ -449,7 +449,7 @@ void CCaptureRunningAppDlg::OnBnClickedCapturePro()
 	CImage _image;
 	int color_depth = ::GetDeviceCaps(hdc_target, BITSPIXEL);
 	
-	_image.Create(captured_width, captured_height, color_depth, 0);
+	_image.Create(captured_width, captured_height, 32, 0);
 	HDC temp = _image.GetDC();
 	::PrintWindow(window, temp, 2);
 	m_PicControl.GetDC()->StretchBlt(0, 0, crect.Width(), crect.Height(), CDC::FromHandle(temp), 0, 0, captured_width, captured_height, SRCCOPY);
